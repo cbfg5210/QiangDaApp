@@ -1,0 +1,66 @@
+/**
+功能：调用服务器的极光推送API
+参数：
+    sendToFlag：接收用户的标识，allcounts：发送给Record范围内的用户，all：发送给注册过的所有用户
+    recordObjectId：所在Record的行Id
+    params：推送用户加入房间消息时，params={"flag":"NewUserEnter","objectId":"6d58eb3343","nickName":"000000000000000","avatar":"xx"}
+            推送用户退出房间消息时，params={"flag":"UserExit","objectId":"6d58eb3343","nickName":"000000000000000"}
+            推送用户点击开始消息时，params={"flag":"UserStart","objectId":"6d58eb3343","nickName":"000000000000000"}
+            推送用户抢答成功消息时，params={"flag":"QiangDaSuccess","nickName":"000000000000000"}
+            推送用户抢答失败消息时，params={"flag":"QiangDaFailure","nickName":"000000000000000"}
+            推送用户回答正确消息时，params={"flag":"AnswerRight","nickName":"000000000000000","nextNum":3}
+            推送用户回答错误消息时，params={"flag":"AnswerWrong","nickName":"000000000000000","nextNum":3}
+            推送倒计时消息时，params={"flag":"DaoJiShi","questions":[1,2,3],"roomId":"cGPb999G"}
+            推送抢答游戏结束消息时，params={"flag":"GameOver","roomId":"cGPb999G"}
+            
+    极光推送的消息类似：
+    接受到自定义消息：message : Hi,JPush
+        extras : {"nickName":"bb","flag":"NewUserEnter"}
+        接受到自定义消息：message : Hi,JPush
+        extras : {"nickName":"bb","flag":"UserExit"}
+        接受到自定义消息：message : Hi,JPush
+        extras : {"nickName":"bb","flag":"UserStart"}
+        接受到自定义消息：message : Hi,JPush
+        {"flag":"QiangDa","data":{"objectId":"fe1763ed79","recordObjectId":"f5de358bfa","nickName":"bb","roomId":"rbijBBBM"}}
+        : {"nickName":"bb","flag":"QiangDaSuccess"}
+*/
+function onRequest(request, response, modules) {
+    var db=modules.oData;
+    var http = modules.oHttp;
+        
+    var sendToFlag=request.body.sendToFlag;
+    var recordObjectId=request.body.recordObjectId;
+    var paramsToPost=JSON.parse(request.body.params);
+    
+    if(sendToFlag=="allcounts"){
+        //透传消息给当前游戏全部用户
+        db.findOne({
+            "table":"Record",
+            "objectId":recordObjectId,
+            "keys":"appUsers"
+        },function(err,data){
+            
+            // response.send(data);
+            var jData=JSON.parse(data);
+            // response.send(data);
+            // response.send(jData.appUsers);
+            
+            paramsToPost['alias']=jData.appUsers;
+            
+            // response.send("paramsToPost="+JSON.stringify(paramsToPost));
+            
+            var r = http.post({url:'http://121.42.189.104/jpush.php', form : paramsToPost}
+            , function optionalCallback (err, httpResponse, body) {
+            response.send(httpResponse.body);
+        });
+    });
+    }
+    else if(sendToFlag=="all"){
+       //透传消息给全部用户 
+       var r = http.post({
+        url:'http://121.42.189.104/jpush.php', form : paramsToPost}
+        , function optionalCallback (err, httpResponse, body) {
+        response.send(httpResponse.body);
+    });
+    }
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             

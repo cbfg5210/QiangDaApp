@@ -1,0 +1,65 @@
+/**
+*功能：抢答题目
+*参数：
+    roomId：房间id
+    objectId：用户id
+    nickName：用户昵称
+*/
+function onRequest(request, response, modules) {
+    var db=modules.oData;
+    var functions=modules.oFunctions;
+    var responseData={};
+    
+    var roomId=request.body.roomId;
+    var objectId=request.body.objectId;
+    var nickName=request.body.nickName;
+    
+        db.findOne({
+            "table":"Room",
+            "objectId":roomId,
+            "include":"currentUser"
+        },function(err,data){
+            var jRoomData=JSON.parse(data);
+            // response.send("isdoing="+jData.isDoing);
+            if(jRoomData.isDoing){
+                responseData.code=119;
+                responseData.msg="当前正在答题状态,抢题失败";
+                responseData.currentUserNick=jRoomData.currentUser.nickName;
+                response.send(responseData);
+            }else{//抢题成功
+                //要向发送请求的用户返回的响应信息
+                 responseData.code=200;
+                 responseData.msg="正在处理抢题结果...";
+                //***
+                
+                //更新数据
+                var rel = modules.oRelation;
+                rel.update({
+                    "table":"Room",
+                    "objectId":roomId,
+                    "data":{
+                        "isDoing":true,
+                        "currentUser":{"__type":"Pointer","className":"AppUser","objectId":objectId}
+                        }
+                },function(err,data){
+                    var params={};
+                    params['flag']="QiangDaSuccess";
+                    params['nickName']=nickName;
+        
+                    functions.run({
+                    "name":"QiangDaJPush",
+                    "data":{
+                        "sendToFlag":"allcounts",
+                        "recordObjectId":jRoomData.record.objectId,
+                        "params":JSON.stringify(params)
+                    }
+                    },function(err,data){});
+                });
+                //***
+                
+                //向发送请求的用户返回响应信息
+                response.send(responseData);
+                //***
+            }
+        });
+                                                }                                                                                                                         

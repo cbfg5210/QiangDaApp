@@ -1,0 +1,41 @@
+/**
+功能：在保持用户昵称唯一性的基础上更新用户昵称
+参数：
+    newNick：新昵称
+    objectId：用户Id
+*/
+function onRequest(request, response, modules) {
+        var db=modules.oData;
+        var responseData={};
+        
+        var newNick=request.body.newNick;
+        var objectId=request.body.objectId;
+        
+        db.find({
+            "table":"AppUser",
+            "count":1,
+            "limit":0,
+            "where":{
+                "nickName":newNick
+            }
+        },function(err,data){
+            var jData=JSON.parse(data);
+            if(jData.count!=0){
+                responseData.code=119;
+                responseData.msg="该昵称已存在";
+                response.send(responseData);
+            }else{
+                db.update({
+                    "table":"AppUser",
+                    "objectId":objectId,
+                    "data":{
+                        "nickName":newNick
+                    }
+                },function(err,data){
+                    responseData.code=200;
+                    responseData.msg="昵称修改成功";
+                    response.send(responseData);
+                });
+            }
+        });
+                                                }                                                                                                                                                                                                         

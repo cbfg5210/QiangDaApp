@@ -1,0 +1,114 @@
+/**
+*功能：用户退出房间
+*参数：
+    roomId:
+    recordObjectId：房间对应的Record数据id
+    objectId：用户id
+    nickName：用户昵称
+*/
+function onRequest(request, response, modules) {
+    var db=modules.oData;
+    var responseData={};
+    
+    var roomId=request.body.roomId;
+    var recordObjectId=request.body.recordObjectId;
+    var objectId=request.body.objectId;
+    var nickName=request.body.nickName;
+    
+    //update Record-gameRecord function
+    var updateGameRecord=function(gameIsStarted){
+        //先找出对应的Record数据，修改好再更新
+        db.findOne({
+            "table":"Record",
+            "objectId":recordObjectId,
+            "keys":"gameRecord"
+        },function(err,data){
+            // response.send(data);
+            var jData=JSON.parse(data);
+            
+            var gRecord=jData.gameRecord.replace(/\\/g, "").replace(/"{/g, "{").replace(/}"/g, "}");
+            // response.send("gRecord="+gRecord);
+            var gameRecord=JSON.parse(gRecord);
+            
+            if(gameIsStarted){
+                gameRecord[objectId].status=-1;
+            }else{
+                delete gameRecord[objectId];
+            }
+            
+            var appUsers=[];
+            for(var key in gameRecord){
+                appUsers.push(key);
+            }
+            
+            db.update({
+                "table":"Record",
+                "objectId":recordObjectId,
+                "data":{
+                    "appUsers":appUsers,
+                    "gameRecord":JSON.stringify(gameRecord)
+                }
+            },function(err,data){
+                // response.send("data="+data);
+                // var jData=JSON.parse(data);
+                //要向发送请求的用户返回的响应信息
+                responseData.code=200;
+                responseData.msg="成功退出房间";
+                //***
+                
+                //判断是不是所有用户都退出了房间
+                if(gameRecord.length>2){//游戏还没开始，但是所有用户都退出了房间
+                    var count=0;//users count
+                    var exitCount=0;//users exit count
+                    for(var item in gameRecord){
+                        count++;
+                        if(item.status==-1)exitCount++;
+                    }
+                    if(count==exitCount){//所有开始过游戏的用户都已退出，通知游戏结束
+                        functions.run({
+                            "name":"Code_GameOver",
+                            "data":{
+                                "roomId":roomId,
+                                "recordObjectId":recordObjectId
+                                }
+                            },function(err,data){
+                            });
+                    }else{//还有用户在游戏中
+                        //发送透传消息，通知其他用户有用户退出
+                        var functions = modules.oFunctions;
+                        var params={
+                            "flag":"UserExit",
+                            "nickName":nickName,
+                            "objectId":objectId
+                        };
+                        functions.run({
+                            "name":"QiangDaJPush",
+                            "data":{
+                                "sendToFlag":"allcounts",
+                                "recordObjectId":recordObjectId,
+                                "params":JSON.stringify(params)
+                            }
+                        },function(err,data){
+                        });
+                    }
+                }
+                //***
+                
+                //向发送请求的用户返回响应信息
+                response.send(responseData);
+                //***
+            });
+        });
+    }
+    
+    //要先判断房间的游戏是否开始，如果还没开始，把退出的用户从对应Record表数据移除，如果开始了，不用移除
+    db.findOne({
+        "table":"Room",
+        "objectId":roomId
+    },function(err,data){
+        var jData=JSON.parse(data);
+        updateGameRecord(jData.isStarted);
+    });
+    
+        
+                                                }                                                                                                                                                                                                                                                                                                                                                                                                                 

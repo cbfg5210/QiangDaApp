@@ -1,0 +1,52 @@
+/**
+功能：登录
+参数：
+    deviceId：设备的imei号
+*/
+function onRequest(request, response, modules) {
+        var db=modules.oData
+        var responseData={};
+        
+        var deviceId=request.body.deviceId;
+        // response.send("deviceId="+deviceId);
+        
+        db.find({
+            "table":"AppUser",
+            "count":1,
+            "limit":1,
+            "where":{
+                "deviceId":deviceId
+                }
+        },function(err,data){
+            // response.send("data="+data);
+            var jData=JSON.parse(data);
+            // response.send("jData="+jData);
+            if(jData.count>0){//注册过了
+                var results=jData.results;
+                responseData.msg="该设备已经注册过了";
+                responseData.code=200;
+                responseData.nickName=results[0].nickName;
+                responseData.objectId=results[0].objectId;
+                responseData.avatar=results[0].avatar;
+                response.send(responseData);
+            }else{//没注册过
+                db.insert({
+                    "table":"AppUser",
+                    "data":{
+                        "nickName":deviceId,
+                        "deviceId":deviceId,
+                        "avatar":"http://file.bmob.cn/M03/55/D6/oYYBAFcoj8qAQeYEAAAGucO6NjA856.png"
+                        }
+                },function(err,data){
+                // response.send("insert,data="+data);
+                var jData=JSON.parse(data);
+                responseData.code=200;
+                responseData.msg="注册成功";
+                responseData.nickName=deviceId;
+                responseData.objectId=jData.objectId;
+                responseData.avatar="http://file.bmob.cn/M03/55/D6/oYYBAFcoj8qAQeYEAAAGucO6NjA856.png";
+                response.send(responseData);
+        });
+            }
+        });
+                                                }                                                                                                                                                                                                                                                                                         

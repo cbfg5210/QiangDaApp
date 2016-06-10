@@ -1,0 +1,122 @@
+/**
+*功能：用户点击开始
+*参数：
+    roomId：房间id
+    objectId：用户id
+    nickName：用户昵称
+    recordObjectId：房间对应的Record数据的id
+*/
+function onRequest(request, response, modules) {
+    var db=modules.oData;
+    var responseData={};
+    
+    var roomId=request.body.roomId;
+    var objectId=request.body.objectId;
+    var nickName=request.body.nickName;
+    var recordObjectId=request.body.recordObjectId;
+    
+        db.findOne({
+            "table":"Record",
+            "objectId":recordObjectId
+        },function(err,data){
+            // response.send(data);
+            var jData=JSON.parse(data);
+            var gRecord=jData.gameRecord.replace(/\\/g, "").replace(/"{/g, "{").replace(/}"/g, "}");
+            var gameRecord=JSON.parse(gRecord);
+            gameRecord[objectId].status=2;//status:-1-exit,1-wait,2-start
+            // response.send("gameRecord="+gameRecord+";str="+JSON.stringify(gameRecord));
+            db.update({
+                "table":"Record",
+                "objectId":recordObjectId,
+                "data":{"gameRecord":JSON.stringify(gameRecord)}
+            },function(err,data){
+            //要向发送请求的用户返回的响应信息
+            responseData.code=200;
+            responseData.msg="服务器已经通过你的开始请求,请稍等其他用户";
+            //******
+            // response.send("update ok");
+            //发送透传消息，通知其他用户a用户点击开始
+            var functions=modules.oFunctions;
+            var params={};
+            params.flag="UserStart";
+            params.nickName=nickName;
+            params.objectId=objectId;
+            functions.run({
+                "name":"QiangDaJPush",
+                "data":{
+                    "sendToFlag":"allcounts",
+                    "recordObjectId":recordObjectId,
+                    "params":JSON.stringify(params)
+                    }
+            },function(err,data){});
+            //****
+            
+            //判断选择开始的人数到达n个,是的话就进入倒计时
+            var startCount=0;
+            for(var item in gameRecord){
+                if(gameRecord[item].status==2){
+                    startCount++;
+                }
+            }
+            if(startCount>=2){
+                //更新Room的isStarted为true
+                db.update({
+                    "table":"Room",
+                    "objectId":roomId,
+                    "data":{
+                    "isStarted":true
+                    }
+                },function(err,data){
+                //发送倒计时消息，并发送10条随机不重复题目id
+                db.find({
+                "table":"Question",
+                "count":1,
+                "limit":0
+                },function(err,data){
+                // response.send("data="+data);
+                var jData=JSON.parse(data);
+                // response.send("data="+data);
+                // response.send("results="+jData.results);
+                // response.send("results0="+jData.results[0]['answer']);
+                var count=jData.count; 
+                var originalArray=[];
+                //初始化index列表
+                for(var i=1;i<=count;i++){
+                    originalArray.push(i);
+                }
+                //打乱index列表
+                originalArray.sort(function(){ 
+                    return 0.5 - Math.random(); 
+                    }); 
+                // response.send("originalArray="+originalArray);
+                var questionsIndexs=originalArray.slice(0,10);
+                // response.send("new array="+questionsIndexs);
+                params['flag']="DaoJiShi";
+                params['questions']=questionsIndexs;
+                params['roomId']=roomId;
+                functions.run({
+                "name":"QiangDaJPush",
+                "data":{
+                    "sendToFlag":"all",
+                    "recordObjectId":recordObjectId,
+                    "params":JSON.stringify(params)
+                    }
+                },function(err,data){
+                });
+                //将题目信息存入表中
+                db.update({
+                    "table":"Record",
+                    "objectId":recordObjectId,
+                    "data":{"questions":questionsIndexs}
+                },function(err,data){});
+                });
+                });
+            }
+            //****
+            
+            //向发送请求的用户返回响应信息
+            response.send(responseData);
+            //*****
+        });
+    });
+                                                }                                                                                                                                                                                                                                                                                                                                                                         

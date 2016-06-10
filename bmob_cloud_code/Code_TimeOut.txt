@@ -1,0 +1,52 @@
+/**
+功能：提醒服务器用户作答超时，做相应处理
+参数：
+    roomId：房间id
+    objectId：用户id
+    nickName：用户昵称
+   
+*/
+function onRequest(request, response, modules) {
+var nowDate=new Date(); 
+
+var db=modules.oData;
+var responseData={};
+
+var roomId=request.body.roomId;
+var nickName=request.body.nickName;
+var answer="NO";
+
+db.findOne({
+    "table":"Room",
+    "objectId":roomId
+    //"include"在这里无效，需要用oRelation对象才能include
+},function(err,data){
+    var jData=JSON.parse(data);
+    var updatedAt=jData.updatedAt.replace(/-/g, "/");
+    var updatedDate = new Date(Date.parse(updatedAt));
+    var updatedTime=updatedDate.getTime();
+    var nowTime=nowDate.getTime();
+    var timesub=nowTime-updatedTime;
+    
+    if(nowTime-updatedTime>=10000){
+        var functions=modules.oFunctions;
+        functions.run({
+            "name":"Code_Answer",
+            "data":{
+                "roomId":roomId,
+                "objectId":jData.currentUser.objectId,
+                "nickName":nickName,
+                "index":jData.currentNum,
+                "answer":answer
+            }
+        },function(err,data){
+            response.send(data);
+        });
+    }
+});
+    
+    /*responseData.code=200;
+    responseData.msg="服务器正在处理延时通知";
+    response.send(responseData);*/
+    
+                                                }                                        

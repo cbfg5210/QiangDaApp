@@ -1,0 +1,52 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="10dp"
+    tools:context="com.hawk.qiangda.ui.fragment.QiangDaFragment">
+
+    <TextView
+        android:id="@+id/fqda_index"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="题号：1" />
+
+    <TextView
+        android:id="@+id/fqda_question"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="题目" />
+
+    <RadioGroup
+        android:id="@+id/fqda_options"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp">
+
+        <Button
+            android:id="@+id/fqda_qiangda"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:text="抢题" />
+
+        <TextView
+            android:id="@+id/fqda_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toLeftOf="@id/fqda_qiangda"
+            android:layout_marginRight="5dp"
+            android:layout_centerVertical="true"
+            android:text="5"
+            android:textSize="20sp"/>
+    </RelativeLayout>
+
+</LinearLayout>

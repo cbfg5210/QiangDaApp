@@ -1,0 +1,74 @@
+/**
+功能：获取分数数据
+参数：
+    recordObjectId
+*/
+function onRequest(request, response, modules) {
+var db=modules.oData;
+var recordObjectId=request.body.recordObjectId;
+
+// response.send("recordObjectId="+recordObjectId);
+
+db.findOne({
+    "table":"Record",
+    "objectId":recordObjectId,
+    "keys":"gameRecord,appUsers"
+},function(err,data){
+    // response.send(data);
+    var jData=JSON.parse(data);
+    var gameRecord=jData.gameRecord.replace(/\\/g, "").replace(/"{/g, "{").replace(/}"/g, "}");
+    var jGameRecord=JSON.parse(gameRecord);
+    
+    //   response.send("gameRecord="+gameRecord);
+        
+    var appUsers=jData.appUsers;
+    var len=appUsers.length-1;
+    
+    // response.send(appUsers);
+    // response.send(jGameRecord);
+    
+    var theSql="select nickName,avatar from AppUser where objectId in (";
+    for(var i=0;i<len;i++){
+        theSql=theSql+"'"+appUsers[i]+"',";
+    }
+    theSql=theSql+"'"+appUsers[len]+"')";
+    
+    // response.send(theSql);
+    
+    //获得bql的对象 
+    var Bql = modules.oBql; 
+    Bql.exec({
+      "bql":theSql
+      },function(err,data){
+          
+    //   response.send(data);
+    
+    var jData=JSON.parse(data);
+    var results=jData.results;
+    
+    // response.send(results);
+    
+    var len=results.length;
+    
+    // response.send("len="+len);
+    
+    for(var i=0;i<len;i++){
+        var result=results[i];
+        var objectId=result.objectId;
+        
+        // response.send("result="+result);
+        // response.send("objectId="+objectId);//0f79a39cb0
+        // response.send("jGameRecord.objectId="+jGameRecord[objectId]);
+        // response.send("jGameRecord.objectId.score="+jGameRecord[objectId].score);
+        
+        jGameRecord[objectId].nickName=result.nickName;
+        jGameRecord[objectId].avatar=result.avatar;
+        // response.send(jGameRecord);
+    }
+    response.send(jGameRecord);
+      });
+    
+});
+
+
+                                                }                                                                                                                                                                                                                                                                                                                                                                                                                 

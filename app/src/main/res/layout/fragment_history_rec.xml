@@ -1,0 +1,17 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context="com.hawk.qiangda.ui.fragment.HistoryRecFragment">
+    <ListView
+        android:id="@+id/fhrec_list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+    <Button
+        android:id="@+id/fhrec_more"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="加载更多..."
+        android:gravity="center"/>
+</LinearLayout>

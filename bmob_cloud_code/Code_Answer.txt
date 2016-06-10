@@ -1,0 +1,127 @@
+/**
+*功能：用户提交答案进行审核
+*参数：
+    roomId：房间id
+    objectId：用户id
+    nickName：用户昵称
+    index：题目标号
+    answer：答案
+*/
+function onRequest(request, response, modules) {
+        var db=modules.oData;
+        var functions=modules.oFunctions;
+        var responseData={};
+        
+        var roomId=request.body.roomId;
+        var objectId=request.body.objectId;
+        var nickName=request.body.nickName;
+        var index=request.body.index;
+        var answer=request.body.answer;
+        
+        db.findOne({
+            "table":"Room",
+            "objectId":roomId
+            // "include":"currentUser",无效
+        },function(err,data){
+            // response.send("data="+data);
+            var jData=JSON.parse(data);
+            // 获取json里面的内容，可以有两种写法:
+            // 1:jData.currentUser.objectId;
+            // 2:jData['currentUser']['objectId']
+            var currentUserId=jData.currentUser.objectId;
+            var recordObjectId=jData.record.objectId;
+            var currentNum=jData.currentNum;
+            // response.send("currentUserId="+currentUserId);
+            if(objectId!=currentUserId){//提交答案的用户并非当前抢答成功的用户时
+                responseData.code=119;
+                responseData.msg="你不是当前抢答成功的用户,答题失败";
+                response.send(responseData);
+            }else{
+                //判断答案是否正确
+                //要向发送请求的用户返回的响应信息
+                responseData.code=200;
+                responseData.msg="服务器正在审核答案...";
+                //*****
+                
+                //判断答案是否正确
+                db.find({
+                    "table":"Question",
+                    "keys":"answer",
+                    "limit":1,
+                    "where":{"index":parseInt(index)}
+                },function(err,data){
+                    // response.send("data="+data);
+                    var jData=JSON.parse(data);
+                    var results=jData.results;
+                    // response.send("results="+results);
+                    // response.send("results0="+results[0].answer ok
+                    var trueAnswer=results[0].answer.trim();
+                    // response.send("开始判断答案
+                    var addScore=0;
+                    var params={};
+                    if(trueAnswer!=answer){//答案不正确
+                        //减一分
+                        addScore=-1;                        
+                        params['flag']="AnswerWrong";
+                    }else{//答案正确
+                        //加一分
+                        addScore=1;  
+                        params['flag']="AnswerRight";
+                    }
+                    db.findOne({
+                            "table":"Record",
+                            "objectId":recordObjectId,
+                            "keys":"gameRecord"
+                        },function(err,data){
+                            var jData=JSON.parse(data);
+                            var gRecord=jData.gameRecord.replace(/\\/g, "").replace(/"{/g, "{").replace(/}"/g, "}");
+                            var gameRecord=JSON.parse(gRecord);
+                            gameRecord[objectId].score+=addScore;
+                            db.update({
+                                "table":"Record",
+                                "objectId":recordObjectId,
+                                "data":{"gameRecord":JSON.stringify(gameRecord)}
+                            },function(err,data){
+                            //判断是否已经答完全部题目
+                            if(currentNum>=9){//抢答游戏结束
+                                functions.run({
+                                "name":"Code_GameOver",
+                                "data":{
+                                    "roomId":roomId,
+                                    "recordObjectId":recordObjectId
+                                    }
+                                },function(err,data){});
+                            }else{// 游戏还没结束
+                                db.update({
+                                "table":"Room",
+                                "objectId":roomId,
+                                "data":{
+                                "currentNum":{"__op":"Increment","amount":1},
+                                "isDoing":false
+                            }
+                                },function(err,data){
+                                //获取全部alias，进行消息通知
+                                params['nickName']=nickName;
+                                params['nextNum']=currentNum+1;
+                                
+                                functions.run({
+                                "name":"QiangDaJPush",
+                                "data":{
+                                    "sendToFlag":"allcounts",
+                                    "recordObjectId":recordObjectId,
+                                    "params":JSON.stringify(params)
+                                }
+                            },function(err,data){});
+                            });
+                        }
+                        });
+                    });
+                });
+                //******
+                
+                //向发送请求的用户返回响应信息
+                response.send(responseData);
+                //*****
+            }
+        });
+                                                }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         

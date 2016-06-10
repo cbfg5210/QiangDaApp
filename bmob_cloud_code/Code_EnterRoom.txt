@@ -1,0 +1,141 @@
+/**
+功能：用户进入房间
+参数： 
+    objectId：用户id
+    nickName：用户昵称
+    avatar:用户头像
+    roomId：房间id
+新增数据格式:objectId:{"status":1,"score":0}
+status:-1-exit,1-wait,2-start
+*/
+function onRequest(request, response, modules) { 
+    var db=modules.oData;
+    var responseData={};
+    
+    var objectId=request.body.objectId;
+    var nickName=request.body.nickName;
+    var avatar=request.body.avatar;
+    var roomId=request.body.roomId;
+    
+    /*
+    *函数说明：
+    *把用户添加进房间对应的Record数据内
+    */
+    var addUserToRecord=function(recordId){
+        // response.send(recordId);
+        db.findOne({
+            "table":"Record",
+            "objectId":recordId,
+        },function(err,data){
+            // response.send(data);
+            var jData=JSON.parse(data);
+            // response.send(jData);
+            
+            var appUsers=jData.appUsers;
+            if(!appUsers){
+                // response.send("no appUsers");
+                appUsers=[];
+            }            
+            appUsers.push(objectId);
+            
+            // response.send("appUsers="+appUsers);
+            
+            var gameRecord;
+            if(!jData.gameRecord||jData.gameRecord==""){//为空
+                gameRecord={};
+            }else{
+             var gRecord=jData.gameRecord.replace(/\\/g, "").replace(/"{/g, "{").replace(/}"/g, "}");
+             gameRecord=JSON.parse(gRecord);
+            }
+            // response.send("gameRecord="+gameRecord+";sgameRecord="+JSON.stringify(gameRecord));
+            gameRecord[objectId]={"status":1,"score":0};//status:-1-exit,1-wait,2-start
+            // response.send("gameRecord="+gameRecord+";str="+JSON.stringify(gameRecord));
+            db.update({
+                "table":"Record",
+                "objectId":recordId,
+                "data":{
+                    "appUsers":appUsers,
+                    "gameRecord":JSON.stringify(gameRecord)
+                }
+            },function(err,data){
+                responseData.msg="成功添加到房间";
+                responseData.code=200;
+                responseData.recordObjectId=recordId;
+                //发送透传消息，通知其他用户有新用户加入
+                var functions =modules.oFunctions;
+                var params={
+                    "flag":"NewUserEnter",
+                    "nickName":nickName,
+                    "objectId":objectId,
+                    "avatar":avatar
+                };
+                // response.send("params="+params);
+                // response.send("params="+JSON.stringify(params));
+                functions.run({
+                    "name":"QiangDaJPush",
+                    "data":{
+                        "sendToFlag":"allcounts",
+                        "recordObjectId":recordId,
+                        "params":JSON.stringify(params)//要转成string类型才能传递成功
+                    }
+                },function(err,data){
+                    // response.send(data);
+                });
+                //返回信息通知该用户已成功加入房间
+                response.send(responseData);
+            });
+        });
+    };
+    
+    
+    /*
+    *函数说明：
+    *如果该房间没有对应的Record数据，创建Record数据，然后把用户添加进去
+    */
+        var createRecord=function(){
+        //判断竞答是否开始
+        db.findOne({
+            "table":"Room",
+            "objectId":roomId
+        },function(err,data){
+            var jData=JSON.parse(data);
+            // response.send("jData="+jData+";isStarted="+jData.isStarted);
+            if(jData.isStarted){//已经开始
+                responseData.msg="竞答已经开始,建议结束后再加入";
+                responseData.code=119;
+                response.send(responseData);
+            }else{//竞答还没开始:
+                //是否已经创建了对应的Record数据
+                //还没创建对应的Record数据
+                // response.send(jData);
+                if(!jData.record||jData.record.objectId==""){//房间还没创建对应的Record数据
+                // response.send("record=null");
+                  db.insert({
+                      "table":"Record",
+                      "data":{}
+                  },function(err,data){
+                    //   response.send("data="+data);
+                      var jData=JSON.parse(data);
+                    //   response.send("jData="+jData);
+                      //将新建的Record的id填入Room表对应的数据
+                      db.update({
+                          "table":"Room",
+                          "objectId":roomId,
+                          "data":{
+                             "record":{"__type":"Pointer","className":"Record","objectId":jData.objectId} 
+                          }
+                      },function(err,data){
+                          addUserToRecord(jData.objectId);
+                        // response.send(data);
+                        });
+                      });
+                }else{//房间已创建过对应的Record数据
+                    // response.send("record!=null");
+                    addUserToRecord(jData.record.objectId);
+                    // response.send("ok");
+                }
+            }
+            });
+    };
+            createRecord();
+                                                }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         

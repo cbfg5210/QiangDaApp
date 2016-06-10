@@ -1,0 +1,38 @@
+/*
+*竞答游戏结束后删除CurrentRecord数据并还原Room数据
+*/
+function onRequest(request, response, modules) {
+    var db=modules.oData;
+    var functions=modules.oFunctions;
+    
+    var recordObjectId=request.body.recordObjectId;
+    var roomId=request.body.roomId;
+    
+    //发送游戏结束消息-重置Room表数据
+        var params={};
+        params.flag="GameOver";
+        params.roomId=roomId;
+        // response.send("params="+JSON.stringify(params));
+        functions.run({
+        "name":"QiangDaJPush",
+        "data":{
+        "sendToFlag":"all",
+        "recordObjectId":recordObjectId,
+        "params":JSON.stringify(params)
+        }
+        },function(err,data){
+        // response.send("data="+data);
+        //重置Room表数据
+            db.update({
+            "table":"Room",
+            "objectId":roomId,
+            "data":{
+            "isStarted":false,
+            "currentNum":0,
+            "isDoing":false,
+            "record":{"__type":"Pointer","className":"Record","objectId":""}
+        }
+        },function(err,data){});
+    });
+    
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
