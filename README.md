@@ -1,7 +1,7 @@
 # QiangDaApp
 一个简单的抢答app  
 
-运行录像：  
+运行录像：<http://v.youku.com/v_show/id_XMTYwMzYyMjA4MA==.html?from=y1.7-1.2>  
 
 <embed src="http://player.youku.com/player.php/sid/XMTYwMzYyMjA4MA==/v.swf" allowFullScreen="true" quality="high" width="480" height="400" align="middle" allowScriptAccess="always" type="application/x-shockwave-flash"></embed>
 
